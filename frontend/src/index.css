@@ -1,0 +1,76 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+:root {
+  font-family: Inter, "Segoe UI", sans-serif;
+  color: #292923;
+  background: #faf8f4;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  font-weight: 400;
+
+  --paper: #faf8f4;
+  --white: #fff;
+  --ink: #292923;
+  --muted: #85847c;
+  --line: #eeece6;
+  --gold: #aa8b50;
+  --forest: #3e4a3c;
+  --card-shadow: 0 2px 14px rgba(39, 37, 28, 0.035);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+  background: var(--paper);
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid rgba(170, 139, 80, 0.36);
+  outline-offset: 3px;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  color: #292923;
+  background: #e9ddc3;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}

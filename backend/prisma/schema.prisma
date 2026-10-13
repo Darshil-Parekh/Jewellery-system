@@ -1,0 +1,192 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+}
+
+enum MetalType {
+  GOLD
+  SILVER
+  PLATINUM
+  DIAMOND
+  OTHER
+}
+
+enum InventoryStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  INSPECTION
+}
+
+enum MovementType {
+  STOCK_RECEIVED
+  SOLD
+  RETURNED
+  RESERVED
+  RELEASED
+  STATUS_CHANGED
+  ADJUSTED
+}
+
+enum SaleStatus {
+  PAID
+  PARTIALLY_PAID
+  UNPAID
+  VOID
+}
+
+model User {
+  id               String           @id @default(uuid()) @db.Uuid
+  fullName         String
+  email            String           @unique
+  passwordHash     String
+  role             UserRole         @default(STAFF)
+  isActive         Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  sessions         RefreshSession[]
+  stockMovements   StockMovement[]
+  recordedSales    Sale[]           @relation("RecordedSales")
+}
+
+model RefreshSession {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  refreshTokenHash String
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model Category {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+}
+
+model Product {
+  id          String          @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  categoryId  String          @db.Uuid
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  category    Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  items       InventoryItem[]
+
+  @@index([categoryId])
+  @@index([name])
+}
+
+model InventoryItem {
+  id               String          @id @default(uuid()) @db.Uuid
+  productId        String          @db.Uuid
+  sku              String          @unique
+  tagCode          String          @unique
+  metalType        MetalType
+  purityLabel      String?
+  fineness         Decimal?        @db.Decimal(5, 4)
+  grossWeight      Decimal         @db.Decimal(10, 3)
+  netWeight        Decimal         @db.Decimal(10, 3)
+  stoneWeight      Decimal         @default(0) @db.Decimal(10, 3)
+  hasDiamond       Boolean         @default(false)
+  diamondDetails   String?
+  gemstoneDetails  String?
+  purchaseCost     Decimal         @db.Decimal(14, 2)
+  status           InventoryStatus @default(AVAILABLE)
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  product          Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  movements        StockMovement[]
+  sale             SaleItem?
+
+  @@index([status, metalType])
+  @@index([productId, status])
+  @@index([createdAt])
+}
+
+model StockMovement {
+  id              String          @id @default(uuid()) @db.Uuid
+  inventoryItemId String          @db.Uuid
+  userId          String          @db.Uuid
+  type            MovementType
+  weight          Decimal?        @db.Decimal(10, 3)
+  reference       String?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  inventoryItem   InventoryItem   @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+  user            User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt])
+  @@index([inventoryItemId, createdAt])
+}
+
+model Customer {
+  id        String   @id @default(uuid()) @db.Uuid
+  fullName  String
+  email     String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sales     Sale[]
+
+  @@index([fullName])
+}
+
+model Sale {
+  id          String     @id @default(uuid()) @db.Uuid
+  invoiceNo   String     @unique
+  customerId  String?    @db.Uuid
+  recordedById String   @db.Uuid
+  totalAmount Decimal    @db.Decimal(14, 2)
+  status      SaleStatus @default(UNPAID)
+  soldAt      DateTime   @default(now())
+  createdAt   DateTime   @default(now())
+  customer    Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  recordedBy  User       @relation("RecordedSales", fields: [recordedById], references: [id], onDelete: Restrict)
+  items       SaleItem[]
+
+  @@index([soldAt])
+  @@index([status, soldAt])
+}
+
+model SaleItem {
+  id              String        @id @default(uuid()) @db.Uuid
+  saleId          String        @db.Uuid
+  inventoryItemId String        @unique @db.Uuid
+  unitPrice       Decimal       @db.Decimal(14, 2)
+  sale            Sale          @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+
+  @@index([saleId])
+}
+
+model MetalRateSnapshot {
+  id             String    @id @default(uuid()) @db.Uuid
+  metalType      MetalType
+  ratePerGram    Decimal   @db.Decimal(14, 4)
+  currency       String    @default("INR")
+  unit           String    @default("gram")
+  purityLabel    String?
+  provider       String
+  providerTime   DateTime?
+  fetchedAt      DateTime  @default(now())
+
+  @@index([metalType, fetchedAt])
+}
